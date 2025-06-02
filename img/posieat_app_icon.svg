@@ -1,0 +1,57 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- 🎨 定義セクション：POSIEATのみに集中 -->
+  <defs>
+    <!-- メインブランドグラデーション -->
+    <linearGradient id="brandGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#764ba2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f093fb;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- POSIEAT専用エフェクト -->
+    <filter id="logoGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000000" flood-opacity="0.4"/>
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+  
+  <!-- 📱 クリーンなアプリベース -->
+  <rect width="1024" height="1024" rx="200" ry="200" 
+        fill="url(#brandGradient)"/>
+  
+  <!-- 🎯 POSIEAT - 完全にフォーカスした表現 -->
+  <g transform="translate(512, 450)" text-anchor="middle">
+    
+    <!-- POSIEATメインロゴ - 圧倒的存在感 -->
+    <text x="0" y="20" 
+          font-family="Inter, Arial, sans-serif" 
+          font-size="160" 
+          font-weight="900" 
+          fill="#FFFFFF"
+          letter-spacing="12px"
+          filter="url(#logoGlow)">POSIEAT</text>
+    
+    <!-- サブタイトル：POS SYSTEM -->
+    <text x="0" y="120" 
+          font-family="Inter, Arial, sans-serif" 
+          font-size="48" 
+          font-weight="600" 
+          fill="#FFFFFF"
+          letter-spacing="4px"
+          opacity="0.85"
+          filter="url(#logoGlow)">POS SYSTEM</text>
+          
+  </g>
+  
+  <!-- ✨ ミニマルな装飾要素 -->
+  <g>
+    <!-- 上部アクセントライン -->
+    <rect x="200" y="180" width="624" height="4" 
+          fill="#FFFFFF" opacity="0.4" rx="2"/>
+    
+    <!-- 下部アクセントライン -->
+    <rect x="200" y="840" width="624" height="4" 
+          fill="#FFFFFF" opacity="0.4" rx="2"/>
+  </g>
+  
+</svg>

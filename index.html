@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="POSIEAT">
+    <title>新レジ「POSIEAT」</title>
+    <link href="https://fonts.googleapis.com/css?family=Noto+Sans+JP" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/memo.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <!-- 📊 グラフを描くためのライブラリを追加 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+</head>
+<body>
+
+    <!-- スプラッシュ画面 -->
+    <div id="splash-screen" class="splash-screen">
+        <div class="splash-icon"><img src="./img/posieat_app_icon.svg" alt=""></div>
+    </div>
+
+
+    <div class="app-container">
+        <div class="header">
+            <h1>POSIEAT</h1>
+            <p>POS SYSTEM</p>
+
+            <div class="floating-icons">
+                <span class="floating-icon" style="--delay: 0s; --x: 15%; --y: 25%;">◆</span>
+                <span class="floating-icon" style="--delay: 2s; --x: 85%; --y: 35%;">●</span>
+                <span class="floating-icon" style="--delay: 4s; --x: 25%; --y: 75%;">▲</span>
+                <span class="floating-icon" style="--delay: 6s; --x: 75%; --y: 65%;">■</span>
+                <span class="floating-icon" style="--delay: 8s; --x: 55%; --y: 85%;">⬢</span>
+            </div>
+        </div>
+    
+        <div class="tab-navigation">
+            <button class="tab-btn active" onclick="showTab('menu')">📱 注文・会計</button>
+            <button class="tab-btn" onclick="showTab('history')">📊 売上履歴</button>
+            <button class="tab-btn" onclick="showTab('deleted')">🗑️ 削除履歴</button>
+            <!-- 📈 新しいタブを追加：今日の売上をグラフで見るためのボタン -->
+            <button class="tab-btn" onclick="showTab('analytics')">📈 売上分析</button>
+        </div>
+    
+        <!-- メニュー・注文画面 -->
+        <div id="menu-tab" class="main-content">
+            <div class="menu-section">
+                <h2>🍽️ メニュー</h2>
+                <div class="menu-category-tabs" id="category-tabs">
+                    <!-- カテゴリータブはJavaScriptで生成 -->
+                </div>
+                <div class="menu-display-area" id="menu-display">
+                    <!-- 選択されたカテゴリーのメニューを表示 -->
+                </div>
+            </div>
+    
+            <div class="cart-section">
+                <h2>🛒 ご注文</h2>
+                <div class="cart-items-container" id="cart-items">
+                    <div class="empty-message">メニューを選んでご注文ください</div>
+                </div>
+    
+                <div class="total-section">
+                    <div class="total-amount" id="total-amount">合計: ¥0</div>
+                    <div class="action-buttons">
+                        <button class="btn btn-clear" onclick="clearCart()">🗑️ クリア</button>
+                        <button class="btn btn-checkout" onclick="checkout()">💳 会計</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <!-- 履歴画面 -->
+        <div id="history-tab" class="history-section">
+            <div class="history-controls">
+                <div class="history-title">📈 売上履歴</div>
+                <button class="btn-delete-all" onclick="confirmDeleteAll()">🗑️ 全削除</button>
+            </div>
+            <div id="history-list">
+                <div class="empty-message">まだ売上履歴がありません</div>
+            </div>
+        </div>
+    
+        <!-- 🗑️ 新しい画面を追加：削除された注文の履歴を表示する画面 -->
+        <div id="deleted-tab" class="history-section">
+            <div class="history-controls">
+                <div class="history-title">🗑️ 削除履歴</div>
+                <!-- 削除履歴を完全に消去するボタン -->
+                <button class="btn-delete-all" onclick="confirmClearDeletedHistory()">🧹 履歴クリア</button>
+            </div>
+            <div id="deleted-list">
+                <div class="empty-message">削除された履歴はありません</div>
+            </div>
+        </div>
+    
+        <!-- 📈 新しい画面を追加：売上分析とグラフを表示する画面 -->
+        <div id="analytics-tab" class="history-section">
+            <div class="history-controls">
+                <div class="history-title">📈 売上分析</div>
+                <!-- 日付を選択するためのボタン -->
+                <input type="date" id="analytics-date" class="date-picker" onchange="updateAnalytics()" />
+            </div>
+    
+            <!-- 📊 今日の売上の概要を表示するカード -->
+            <div class="analytics-summary">
+                <div class="summary-card">
+                    <div class="summary-icon">💰</div>
+                    <div class="summary-content">
+                        <div class="summary-title">総売上</div>
+                        <div class="summary-value" id="total-sales">¥0</div>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon">📋</div>
+                    <div class="summary-content">
+                        <div class="summary-title">注文数</div>
+                        <div class="summary-value" id="total-orders">0件</div>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon">🥘</div>
+                    <div class="summary-content">
+                        <div class="summary-title">商品数</div>
+                        <div class="summary-value" id="total-items">0個</div>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon">💵</div>
+                    <div class="summary-content">
+                        <div class="summary-title">平均注文額</div>
+                        <div class="summary-value" id="average-order">¥0</div>
+                    </div>
+                </div>
+            </div>
+    
+            <!-- 📊 グラフを表示する場所 -->
+            <div class="charts-container">
+                <!-- 時間別売上グラフ -->
+                <div class="chart-section">
+                    <h3>⏰ 時間別売上</h3>
+                    <canvas id="hourly-chart" width="400" height="200"></canvas>
+                </div>
+    
+                <!-- カテゴリ別売上グラフ -->
+                <div class="chart-section">
+                    <h3>🍽️ カテゴリ別売上</h3>
+                    <canvas id="category-chart" width="400" height="200"></canvas>
+                </div>
+    
+                <!-- 人気商品ランキング -->
+                <div class="chart-section">
+                    <h3>🏆 人気商品ランキング</h3>
+                    <div id="popular-items-list">
+                        <div class="empty-message">データがありません</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 確認ダイアログ -->
+    <div id="confirm-dialog" class="confirm-dialog">
+        <div class="confirm-content">
+            <div class="confirm-title" id="confirm-title">確認</div>
+            <div class="confirm-message" id="confirm-message">この操作を実行しますか？</div>
+            <div class="confirm-buttons">
+                <button class="btn-confirm yes" id="confirm-yes">実行</button>
+                <button class="btn-confirm no" onclick="hideConfirmDialog()">キャンセル</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // メニューデータ（カテゴリー別）
+        const menuCategories = {
+            '🍖 メイン料理': [
+                { name: 'プレミアムバーガー', price: 1280, emoji: '🍔' },
+                { name: 'チーズバーガー', price: 980, emoji: '🧀' },
+                { name: 'マルゲリータピザ', price: 1580, emoji: '🍕' },
+                { name: 'カルボナーラ', price: 1180, emoji: '🍝' },
+                { name: 'フライドチキン', price: 890, emoji: '🍗' },
+                { name: 'ビーフステーキ', price: 2480, emoji: '🥩' }
+            ],
+            '🥗 サイド': [
+                { name: 'トリュフポテト', price: 680, emoji: '🍟' },
+                { name: 'シーザーサラダ', price: 780, emoji: '🥗' },
+                { name: 'オニオンリング', price: 580, emoji: '🧅' },
+                { name: 'ガーリックブレッド', price: 480, emoji: '🥖' }
+            ],
+            '🥤 ドリンク': [
+                { name: 'クラフトコーラ', price: 380, emoji: '🥤' },
+                { name: 'フレッシュジュース', price: 480, emoji: '🧃' },
+                { name: 'エスプレッソ', price: 450, emoji: '☕' },
+                { name: 'アールグレイ', price: 420, emoji: '🍵' },
+                { name: 'スムージー', price: 680, emoji: '🥤' },
+                { name: 'ワイン', price: 980, emoji: '🍷' }
+            ],
+            '🍰 デザート': [
+                { name: 'ティラミス', price: 680, emoji: '🍰' },
+                { name: 'アイスクリーム', price: 480, emoji: '🍦' },
+                { name: 'チョコレートケーキ', price: 780, emoji: '🍫' },
+                { name: 'フルーツタルト', price: 880, emoji: '🥧' },
+                { name: 'プリン', price: 580, emoji: '🍮' }
+            ]
+        };
+
+        // カート（注文内容）とレシート履歴を保存
+        let cart = {};        
+        let activeCategory = '🍖 メイン料理';
+
+        
+        
+        // 📊 新しい変数を追加：グラフを描くためのChart.jsオブジェクト（新しく追加）
+        // グラフを描いて、後で更新するときに使います
+        let hourlyChart = null; // 時間別売上グラフ
+        let categoryChart = null; // カテゴリ別売上グラフ
+
+        // 注意：実際の環境では以下のコメントアウトを外してlocalStorageを使用
+        let orderHistory = JSON.parse(localStorage.getItem('orderHistory') || '[]');
+        let orderNumber = parseInt(localStorage.getItem('orderNumber') || '1');
+        let deletedHistory = JSON.parse(localStorage.getItem('deletedHistory') || '[]');
+
+        // タッチイベントの最適化
+        let touchStartY = 0;
+        let touchEndY = 0;
+
+        // スワイプでタブ切り替え（モバイル用）
+        function handleTouchStart(e) {
+            touchStartY = e.touches[0].clientY;
+        }
+
+        function handleTouchEnd(e) {
+            touchEndY = e.changedTouches[0].clientY;
+            handleSwipe();
+        }
+
+        function handleSwipe() {
+            const swipeThreshold = 100;
+            const diff = touchStartY - touchEndY;
+
+            if (Math.abs(diff) > swipeThreshold) {
+                if (diff > 0) {
+                    // 上スワイプ - 履歴画面へ
+                    if ($('#menu-tab').is(':visible')) {
+                        showTab('history');
+                    }
+                } else {
+                    // 下スワイプ - メニュー画面へ
+                    if ($('#history-tab').is(':visible')) {
+                        showTab('menu');
+                    }
+                }
+            }
+        }
+
+        // モバイル最適化の初期化
+        function initMobileOptimizations() {
+            // タッチイベントの追加
+            if ('ontouchstart' in window) {
+                document.addEventListener('touchstart', handleTouchStart, { passive: true });
+                document.addEventListener('touchend', handleTouchEnd, { passive: true });
+            }
+
+            // ビューポート高さの動的調整（モバイルブラウザのURL欄対策）
+            function setViewportHeight() {
+                const vh = window.innerHeight * 0.01;
+                document.documentElement.style.setProperty('--vh', `${vh}px`);
+            }
+
+            setViewportHeight();
+            window.addEventListener('resize', setViewportHeight);
+            window.addEventListener('orientationchange', () => {
+                setTimeout(setViewportHeight, 100);
+            });
+
+            // iOS Safari のスクロール改善
+            if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                document.body.style.webkitOverflowScrolling = 'touch';
+            }
+        }
+
+        // ページ読み込み時の初期化（更新）
+        $(document).ready(function () {
+            createMenuItems();
+            loadOrderHistory();
+            updateCartDisplay();
+            initMobileOptimizations();
+
+            // 📈 売上分析の初期化（新しく追加）
+            initAnalytics();
+
+            // プリロード効果
+            $('.app-container').addClass('loaded');
+        });
+
+        // メニューシステムの初期化
+        function createMenuItems() {
+            createCategoryTabs();
+            showCategory(activeCategory);
+        }
+
+        // カテゴリータブを生成
+        function createCategoryTabs() {
+            let tabsHtml = '';
+
+            for (let category in menuCategories) {
+                const isActive = category === activeCategory ? 'active' : '';
+                tabsHtml += `
+                        <div class="category-tab ${isActive}" onclick="showCategory('${category}')">
+                            ${category}
+                        </div>
+                    `;
+            }
+
+            $('#category-tabs').html(tabsHtml);
+        }
+
+        // カテゴリー表示の切り替え
+        function showCategory(categoryName) {
+            activeCategory = categoryName;
+
+            // タブの状態更新
+            $('.category-tab').removeClass('active');
+            $(`.category-tab:contains('${categoryName.split(' ')[1]}')`).addClass('active');
+
+            // メニュー表示の更新
+            const items = menuCategories[categoryName];
+            let contentHtml = `
+                    <div class="category-content active">
+                        <div class="category-header-display">${categoryName}</div>
+                        <div class="menu-category">
+                            <div class="menu-items-grid">
+                `;
+
+            items.forEach(item => {
+                contentHtml += `
+                        <div class="menu-item" onclick="addToCart('${item.name}', ${item.price})">
+                            <div class="emoji">${item.emoji}</div>
+                            <div class="name">${item.name}</div>
+                            <div class="price">¥${item.price.toLocaleString()}</div>
+                        </div>
+                    `;
+            });
+
+            contentHtml += `
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+            $('#menu-display').html(contentHtml);
+        }
+
+        // カートに商品を追加
+        function addToCart(name, price) {
+            if (cart[name]) {
+                cart[name].quantity += 1;
+            } else {
+                cart[name] = { price: price, quantity: 1 };
+            }
+            updateCartDisplay();
+            showToast(`${name} をカートに追加しました`, 'success');
+        }
+
+        // 商品数量の変更
+        function changeQuantity(name, change) {
+            if (cart[name]) {
+                cart[name].quantity += change;
+                if (cart[name].quantity <= 0) {
+                    delete cart[name];
+                    showToast(`${name} をカートから削除しました`, 'danger');
+                }
+            }
+            updateCartDisplay();
+        }
+
+        // カート表示の更新
+        function updateCartDisplay() {
+            const cartItems = $('#cart-items');
+            const totalAmount = $('#total-amount');
+
+            if (Object.keys(cart).length === 0) {
+                cartItems.html('<div class="empty-message">メニューを選んでご注文ください</div>');
+                totalAmount.text('合計: ¥0');
+                return;
+            }
+
+            let html = '';
+            let total = 0;
+
+            for (let name in cart) {
+                const item = cart[name];
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+
+                html += `
+                        <div class="cart-item">
+                            <div class="item-info">
+                                <div class="name">${name}</div>
+                                <div class="price">¥${item.price.toLocaleString()} × ${item.quantity} = ¥${itemTotal.toLocaleString()}</div>
+                            </div>
+                            <div class="item-controls">
+                                <button class="qty-btn" onclick="changeQuantity('${name}', -1)">−</button>
+                                <div class="quantity">${item.quantity}</div>
+                                <button class="qty-btn" onclick="changeQuantity('${name}', 1)">＋</button>
+                            </div>
+                        </div>
+                    `;
+            }
+
+            cartItems.html(html);
+            totalAmount.text(`合計: ¥${total.toLocaleString()}`);
+        }
+
+        // カートをクリア
+        function clearCart() {
+            if (Object.keys(cart).length === 0) {
+                showToast('カートは既に空です', 'danger');
+                return;
+            }
+            cart = {};
+            updateCartDisplay();
+            showToast('カートをクリアしました', 'success');
+        }
+
+        // 会計処理
+        function checkout() {
+            if (Object.keys(cart).length === 0) {
+                showToast('商品を選んでください', 'danger');
+                return;
+            }
+
+            let total = 0;
+            let items = [];
+            let message = `🧾 レシート No.${orderNumber}\n`;
+            message += `📅 ${new Date().toLocaleString()}\n`;
+            message += '─'.repeat(30) + '\n';
+
+            for (let name in cart) {
+                const item = cart[name];
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                items.push({
+                    name: name,
+                    price: item.price,
+                    quantity: item.quantity,
+                    total: itemTotal
+                });
+                message += `${name}\n  ¥${item.price.toLocaleString()} × ${item.quantity} = ¥${itemTotal.toLocaleString()}\n`;
+            }
+
+            message += '─'.repeat(30) + '\n';
+            message += `💰 合計: ¥${total.toLocaleString()}\n\n`;
+            message += '🙏 ありがとうございました！';
+
+            // 履歴に保存
+            const order = {
+                orderNumber: orderNumber,
+                date: new Date().toLocaleString(),
+                items: items,
+                total: total
+            };
+
+            orderHistory.push(order);
+
+            // 注意：実際の環境では以下のコメントアウトを外してlocalStorageに保存
+            localStorage.setItem('orderHistory', JSON.stringify(orderHistory));
+            localStorage.setItem('orderNumber', (orderNumber + 1).toString());
+
+            alert(message);
+
+            orderNumber++;
+            clearCart();
+            updateHistoryDisplay();
+            showToast(`¥${total.toLocaleString()} の会計が完了しました`, 'success');
+        }
+
+        // タブ切り替え
+        function showTab(tabName) {
+            $('.tab-btn').removeClass('active');
+
+            // 🔄 タブ切り替えの処理を新しいタブに対応
+            // どのタブが押されたかによって、表示する画面を変える
+            if (tabName === 'menu') {
+                // 注文・会計画面を表示
+                $(`button:contains('注文・会計')`).addClass('active');
+                $('#menu-tab').show();
+                $('#history-tab').hide();
+                $('#deleted-tab').hide(); // 削除履歴画面を隠す
+            } else if (tabName === 'history') {
+                // 売上履歴画面を表示
+                $(`button:contains('売上履歴')`).addClass('active');
+                $('#menu-tab').hide();
+                $('#history-tab').show();
+                $('#deleted-tab').hide(); // 削除履歴画面を隠す
+                updateHistoryDisplay();
+            } else if (tabName === 'deleted') {
+                // 🗑️ 削除履歴画面を表示（新しく追加）
+                $(`button:contains('削除履歴')`).addClass('active');
+                $('#menu-tab').hide();
+                $('#history-tab').hide();
+                $('#deleted-tab').show(); // 削除履歴画面を表示
+                $('#analytics-tab').hide(); // 売上分析画面を隠す
+                updateDeletedHistoryDisplay(); // 削除履歴を更新表示
+            } else if (tabName === 'analytics') {
+                // 📈 売上分析画面を表示（新しく追加）
+                $(`button:contains('売上分析')`).addClass('active');
+                $('#menu-tab').hide();
+                $('#history-tab').hide();
+                $('#deleted-tab').hide(); // 削除履歴画面を隠す
+                $('#analytics-tab').show(); // 売上分析画面を表示
+                updateAnalytics(); // 売上データを更新表示
+            }
+        }
+
+        // 履歴読み込み
+        function loadOrderHistory() {
+            // 注意：実際の環境では以下のコメントアウトを外してlocalStorageから読み込み
+            orderHistory = JSON.parse(localStorage.getItem('orderHistory') || '[]');
+            orderNumber = parseInt(localStorage.getItem('orderNumber') || '1');
+            // 🗑️ 削除履歴も読み込む（新しく追加）
+            deletedHistory = JSON.parse(localStorage.getItem('deletedHistory') || '[]');
+            updateHistoryDisplay();
+            updateDeletedHistoryDisplay(); // 削除履歴の表示も更新
+        }
+
+        // 履歴表示の更新
+        function updateHistoryDisplay() {
+            const historyList = $('#history-list');
+
+            if (orderHistory.length === 0) {
+                historyList.html('<div class="empty-message">まだ売上履歴がありません</div>');
+                return;
+            }
+
+            let html = '';
+
+            for (let i = orderHistory.length - 1; i >= 0; i--) {
+                const order = orderHistory[i];
+
+                let itemsHtml = '';
+                order.items.forEach(item => {
+                    itemsHtml += `${item.name} × ${item.quantity} = ¥${item.total.toLocaleString()}<br>`;
+                });
+
+                html += `
+                        <div class="history-item">
+                            <div class="history-header">
+                                <div class="order-info">
+                                    <div class="order-number">注文 #${order.orderNumber}</div>
+                                    <div class="order-date">${order.date}</div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <div class="order-total">¥${order.total.toLocaleString()}</div>
+                                    <button class="btn-delete-item" onclick="confirmDeleteItem(${i})">削除</button>
+                                </div>
+                            </div>
+                            <div class="history-items">${itemsHtml}</div>
+                        </div>
+                    `;
+            }
+
+            historyList.html(html);
+        }
+
+        // 🗑️ 新しい関数：削除履歴を表示する（新しく追加）
+        // この関数は削除された注文を画面に表示するためのもの
+        function updateDeletedHistoryDisplay() {
+            const deletedList = $('#deleted-list'); // 削除履歴を表示する場所を取得
+
+            // もし削除された注文が一つもなければ、「ありません」と表示
+            if (deletedHistory.length === 0) {
+                deletedList.html('<div class="empty-message">削除された履歴はありません</div>');
+                return;
+            }
+
+            let html = ''; // HTMLを作るための空っぽの箱
+
+            // 削除された注文を新しい順（最後に削除されたものから）に表示
+            for (let i = deletedHistory.length - 1; i >= 0; i--) {
+                const order = deletedHistory[i];
+
+                // 注文の中身を文字で表示できるように準備
+                let itemsHtml = '';
+                order.items.forEach(item => {
+                    itemsHtml += `${item.name} × ${item.quantity} = ¥${item.total.toLocaleString()}<br>`;
+                });
+
+                // 削除された注文の情報をHTMLで作成
+                html += `
+                        <div class="history-item" style="border-left: 4px solid #fa709a;">
+                            <div class="history-header">
+                                <div class="order-info">
+                                    <div class="order-number">注文 #${order.orderNumber}</div>
+                                    <div class="order-date">注文日: ${order.date}</div>
+                                    <div class="order-date" style="color: #e53e3e;">削除日: ${order.deletedAt}</div>
+                                    <div class="order-date" style="color: #666;">削除方法: ${order.deletedReason}</div>
+                                </div>
+                                <div class="order-total">¥${order.total.toLocaleString()}</div>
+                            </div>
+                            <div class="history-items">${itemsHtml}</div>
+                        </div>
+                    `;
+            }
+
+            deletedList.html(html); // 作ったHTMLを画面に表示
+        }
+
+        // 🗑️ 新しい関数：削除履歴を完全に消去する確認（新しく追加）
+        // 削除履歴をきれいに掃除するかどうかユーザーに聞く
+        function confirmClearDeletedHistory() {
+            if (deletedHistory.length === 0) {
+                showToast('削除する履歴がありません', 'danger');
+                return;
+            }
+
+            showConfirmDialog(
+                '🧹 削除履歴クリア',
+                `すべての削除履歴 (${deletedHistory.length}件) を完全に削除します。<br><br><strong>⚠️ この操作は取り消せません。</strong>`,
+                function () { clearDeletedHistory(); }
+            );
+        }
+
+        // 🗑️ 新しい関数：削除履歴を完全に消去する（新しく追加）
+        // 削除履歴を空っぽにする
+        function clearDeletedHistory() {
+            const count = deletedHistory.length;
+            deletedHistory = []; // 削除履歴を空っぽにする
+
+            // 注意：実際の環境では以下のコメントアウトを外してlocalStorageを更新
+             localStorage.setItem('deletedHistory', JSON.stringify(deletedHistory));
+
+            updateDeletedHistoryDisplay(); // 画面を更新
+            showToast(`${count}件の削除履歴をクリアしました`, 'success');
+        }
+
+        // 📈 新しい関数：売上分析の初期化（新しく追加）
+        // 売上分析画面を最初に設定する
+        function initAnalytics() {
+            // 今日の日付を日付選択欄に設定
+            const today = new Date();
+            const todayString = today.getFullYear() + '-' +
+                String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                String(today.getDate()).padStart(2, '0');
+            $('#analytics-date').val(todayString);
+
+            // グラフを最初に作る
+            createCharts();
+        }
+
+        // 📊 新しい関数：グラフを作成する（新しく追加）
+        // Chart.jsを使ってきれいなグラフを作る
+        function createCharts() {
+            // 時間別売上グラフを作る
+            const hourlyCtx = document.getElementById('hourly-chart').getContext('2d');
+            hourlyChart = new Chart(hourlyCtx, {
+                type: 'line', // 線グラフ
+                data: {
+                    labels: [], // 時間のラベル（0時、1時、2時...）
+                    datasets: [{
+                        label: '売上金額',
+                        data: [], // 売上データ
+                        borderColor: '#4facfe',
+                        backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4 // 線を滑らかにする
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return '¥' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // カテゴリ別売上グラフを作る（円グラフ）
+            const categoryCtx = document.getElementById('category-chart').getContext('2d');
+            categoryChart = new Chart(categoryCtx, {
+                type: 'doughnut', // ドーナツ型円グラフ
+                data: {
+                    labels: [], // カテゴリ名
+                    datasets: [{
+                        data: [], // 売上データ
+                        backgroundColor: [
+                            '#667eea',
+                            '#f093fb',
+                            '#4facfe',
+                            '#fee140'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // 📈 新しい関数：売上分析を更新する（新しく追加）
+        // 選択した日付の売上データを計算してグラフに表示する
+        function updateAnalytics() {
+            const selectedDate = $('#analytics-date').val();
+            if (!selectedDate) return;
+
+            // 選択された日付の注文だけを取り出す
+            const selectedOrders = orderHistory.filter(order => {
+                const orderDate = new Date(order.date).toISOString().split('T')[0];
+                return orderDate === selectedDate;
+            });
+
+            // 📊 売上概要を計算する
+            calculateSummary(selectedOrders);
+
+            // 📈 時間別売上データを計算する
+            updateHourlyChart(selectedOrders);
+
+            // 🍽️ カテゴリ別売上データを計算する
+            updateCategoryChart(selectedOrders);
+
+            // 🏆 人気商品ランキングを計算する
+            updatePopularItems(selectedOrders);
+        }
+
+        // 💰 新しい関数：売上概要を計算する（新しく追加）
+        // 総売上、注文数、商品数、平均注文額を計算する
+        function calculateSummary(orders) {
+            let totalSales = 0; // 総売上
+            let totalOrders = orders.length; // 注文数
+            let totalItems = 0; // 商品数
+
+            // 全ての注文を見て、売上と商品数を足していく
+            orders.forEach(order => {
+                totalSales += order.total; // 売上を足す
+                order.items.forEach(item => {
+                    totalItems += item.quantity; // 商品数を足す
+                });
+            });
+
+            // 平均注文額を計算（注文数が0の場合は0にする）
+            const averageOrder = totalOrders > 0 ? totalSales / totalOrders : 0;
+
+            // 画面に表示する
+            $('#total-sales').text('¥' + totalSales.toLocaleString());
+            $('#total-orders').text(totalOrders + '件');
+            $('#total-items').text(totalItems + '個');
+            $('#average-order').text('¥' + Math.round(averageOrder).toLocaleString());
+        }
+
+        // ⏰ 新しい関数：時間別売上グラフを更新する（新しく追加）
+        // 0時から23時まで、各時間の売上を計算してグラフに表示する
+        function updateHourlyChart(orders) {
+            // 0時から23時まで、24時間分の売上を入れる箱を用意
+            const hourlyData = new Array(24).fill(0);
+
+            // 全ての注文を見て、何時に注文されたかを調べる
+            orders.forEach(order => {
+                const hour = new Date(order.date).getHours(); // 注文時刻を取得
+                hourlyData[hour] += order.total; // その時間の売上に追加
+            });
+
+            // 時間のラベルを作る（0時、1時、2時...23時）
+            const labels = Array.from({ length: 24 }, (_, i) => i + '時');
+
+            // グラフのデータを更新
+            hourlyChart.data.labels = labels;
+            hourlyChart.data.datasets[0].data = hourlyData;
+            hourlyChart.update(); // グラフを再描画
+        }
+
+        // 🍽️ 新しい関数：カテゴリ別売上グラフを更新する（新しく追加）
+        // メイン料理、サイド、ドリンク、デザートの売上を計算する
+        function updateCategoryChart(orders) {
+            const categoryData = {}; // カテゴリ別売上を入れる箱
+
+            // 全ての注文の商品を見て、カテゴリ別に売上を計算
+            orders.forEach(order => {
+                order.items.forEach(item => {
+                    // 商品名からカテゴリを見つける
+                    let category = '不明';
+                    for (let cat in menuCategories) {
+                        const found = menuCategories[cat].find(menuItem => menuItem.name === item.name);
+                        if (found) {
+                            category = cat;
+                            break;
+                        }
+                    }
+
+                    // カテゴリ別売上に追加
+                    if (!categoryData[category]) {
+                        categoryData[category] = 0;
+                    }
+                    categoryData[category] += item.total;
+                });
+            });
+
+            // グラフのデータを更新
+            const labels = Object.keys(categoryData);
+            const data = Object.values(categoryData);
+
+            categoryChart.data.labels = labels;
+            categoryChart.data.datasets[0].data = data;
+            categoryChart.update(); // グラフを再描画
+        }
+
+        // 🏆 新しい関数：人気商品ランキングを更新する（新しく追加）
+        // どの商品がたくさん売れたかランキングを作る
+        function updatePopularItems(orders) {
+            const itemData = {}; // 商品別データを入れる箱
+
+            // 全ての注文の商品を見て、商品別に売上と数量を計算
+            orders.forEach(order => {
+                order.items.forEach(item => {
+                    if (!itemData[item.name]) {
+                        itemData[item.name] = {
+                            quantity: 0, // 売れた個数
+                            sales: 0     // 売上金額
+                        };
+                    }
+                    itemData[item.name].quantity += item.quantity;
+                    itemData[item.name].sales += item.total;
+                });
+            });
+
+            // 売上金額順にソート（並び替え）
+            const sortedItems = Object.entries(itemData)
+                .sort((a, b) => b[1].sales - a[1].sales)
+                .slice(0, 10); // 上位10位まで
+
+            // ランキングを画面に表示
+            let html = '';
+            if (sortedItems.length === 0) {
+                html = '<div class="empty-message">データがありません</div>';
+            } else {
+                sortedItems.forEach(([name, data], index) => {
+                    html += `
+                            <div class="popular-item">
+                                <div class="popular-item-rank">${index + 1}</div>
+                                <div class="popular-item-info">
+                                    <div class="popular-item-name">${name}</div>
+                                    <div class="popular-item-count">${data.quantity}個売上</div>
+                                </div>
+                                <div class="popular-item-sales">¥${data.sales.toLocaleString()}</div>
+                            </div>
+                        `;
+                });
+            }
+
+            $('#popular-items-list').html(html);
+        }
+
+        // 確認ダイアログ表示
+        function showConfirmDialog(title, message, onConfirm) {
+            $('#confirm-title').text(title);
+            $('#confirm-message').html(message);
+            $('#confirm-yes').off('click').on('click', function () {
+                onConfirm();
+                hideConfirmDialog();
+            });
+            $('#confirm-dialog').show();
+        }
+
+        // 確認ダイアログ非表示
+        function hideConfirmDialog() {
+            $('#confirm-dialog').hide();
+        }
+
+        // 個別履歴削除の確認
+        function confirmDeleteItem(index) {
+            const order = orderHistory[orderHistory.length - 1 - index];
+            showConfirmDialog(
+                '📋 履歴削除',
+                `注文 #${order.orderNumber} (¥${order.total.toLocaleString()})<br><br>この注文履歴を削除しますか？`,
+                function () { deleteHistoryItem(index); }
+            );
+        }
+
+        // 全履歴削除の確認
+        function confirmDeleteAll() {
+            if (orderHistory.length === 0) {
+                showToast('削除する履歴がありません', 'danger');
+                return;
+            }
+
+            showConfirmDialog(
+                '🗑️ 全履歴削除',
+                `すべての売上履歴 (${orderHistory.length}件) を削除します。<br><br><strong>⚠️ この操作は取り消せません。</strong>`,
+                function () { deleteAllHistory(); }
+            );
+        }
+
+        // 個別履歴削除
+        function deleteHistoryItem(index) {
+            const realIndex = orderHistory.length - 1 - index;
+            const deletedOrder = orderHistory[realIndex];
+
+            // 🗑️ 削除する前に、削除履歴に保存する（新しく追加）
+            // 削除される注文に「いつ削除されたか」の情報を追加
+            const deletedOrderWithTimestamp = {
+                ...deletedOrder, // 元の注文情報をコピー
+                deletedAt: new Date().toLocaleString(), // 削除された日時を記録
+                deletedReason: '個別削除' // どうやって削除されたかを記録
+            };
+            deletedHistory.push(deletedOrderWithTimestamp); // 削除履歴に追加
+
+            // 元の履歴から削除
+            orderHistory.splice(realIndex, 1);
+
+            // 注意：実際の環境では以下のコメントアウトを外してlocalStorageを更新
+            localStorage.setItem('orderHistory', JSON.stringify(orderHistory));
+            localStorage.setItem('deletedHistory', JSON.stringify(deletedHistory));
+
+            updateHistoryDisplay();
+            updateDeletedHistoryDisplay(); // 削除履歴の表示も更新
+            showToast(`注文 #${deletedOrder.orderNumber} を削除しました`, 'danger');
+        }
+
+        // 全履歴削除
+        function deleteAllHistory() {
+            const count = orderHistory.length;
+
+            // 🗑️ 全部の注文を削除履歴に移動する（新しく追加）
+            // 一つずつ削除履歴に追加していく
+            orderHistory.forEach(order => {
+                const deletedOrderWithTimestamp = {
+                    ...order, // 元の注文情報をコピー
+                    deletedAt: new Date().toLocaleString(), // 削除された日時を記録
+                    deletedReason: '全削除' // 全削除で消されたことを記録
+                };
+                deletedHistory.push(deletedOrderWithTimestamp); // 削除履歴に追加
+            });
+
+            // 売上履歴を空っぽにする
+            orderHistory = [];
+
+            // 注意：実際の環境では以下のコメントアウトを外してlocalStorageを更新
+            localStorage.setItem('orderHistory', JSON.stringify(orderHistory));
+            localStorage.setItem('deletedHistory', JSON.stringify(deletedHistory));
+
+            updateHistoryDisplay();
+            updateDeletedHistoryDisplay(); // 削除履歴の表示も更新
+            showToast(`${count}件の履歴をすべて削除しました`, 'danger');
+        }
+
+        // トーストメッセージ表示
+        function showToast(message, type = 'success') {
+            const toast = $(`
+                    <div class="toast-message toast-${type}">
+                        ${message}
+                    </div>
+                `);
+
+            $('body').append(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // ダイアログ外クリックで閉じる
+        $(document).on('click', '#confirm-dialog', function (e) {
+            if (e.target === this) {
+                hideConfirmDialog();
+            }
+        });
+
+        // キーボードショートカット
+        $(document).keydown(function (e) {
+            if (e.key === 'Escape') {
+                hideConfirmDialog();
+            }
+        });
+    </script>
+</body>
+</html>
